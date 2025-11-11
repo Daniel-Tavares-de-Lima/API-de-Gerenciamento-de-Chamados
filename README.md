@@ -1,4 +1,4 @@
-# 🎫 API de Gerenciamento de Chamados
+#  API de Gerenciamento de Chamados
 
 > Sistema de gestão de tickets/chamados com autenticação JWT, controle de permissões seguindo regras de negócios.
 
