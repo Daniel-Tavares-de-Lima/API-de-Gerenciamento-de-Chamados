@@ -68,7 +68,7 @@ class AuthController{
             })
         }
     }
-
+    //---
     //---Valida o token e retorna os dados do usuário
     async valida(req, res){
         try{
