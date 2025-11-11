@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-quoti
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: tickets_quoti_api
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+    networks:
+      - quoti-network
+
+  app:
+    build: .
+    container_name: api-quoti
+    restart: always
+    command: yarn dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/usr/src/app:cached   
+    environment:
+      - CHOKIDAR_USEPOLLING=true  
+      - DB_USER=root
+      - DB_PASS=root
+      - DB_NAME=tickets_quoti_api
+      - DB_HOST=mysql
+    depends_on:
+      - mysql
+    networks:
+      - quoti-network
+
+networks:
+  quoti-network:
+    driver: bridge
