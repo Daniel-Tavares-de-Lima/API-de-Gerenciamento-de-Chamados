@@ -70,12 +70,12 @@ Criar uma API RESTful robusta que implemente todas as funcionalidades de um sist
 ##  Tecnologias Utilizadas
 
 ### Backend
-- **[Node.js](https://nodejs.org/)** (v18.x) - Runtime JavaScript
-- **[Express.js](https://expressjs.com/)** (v4.x) - Framework web
-- **[Sequelize](https://sequelizejs.com/)** (v6.x) - ORM para Node.js
+- **[Node.js](https://nodejs.org/)** - Runtime JavaScript
+- **[Express.js](https://expressjs.com/)** - Framework web
+- **[Sequelize](https://sequelizejs.com/)**  - ORM para Node.js
 
 ### Banco de Dados
-- **[MySQL](https://www.mysql.com/)** (v8.0) - Banco relacional
+- **[MySQL](https://www.mysql.com/)**  - Banco relacional
 
 ### Autenticação e Segurança
 - **[jsonwebtoken](https://www.npmjs.com/package/jsonwebtoken)** - Geração de tokens JWT
