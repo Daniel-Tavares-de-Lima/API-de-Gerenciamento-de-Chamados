@@ -19,7 +19,7 @@ class UserServices{
 
         //--Valida email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (email && !emailRegex.test(email)) {
             errors.push('Email inválido');
         }
 
@@ -54,12 +54,12 @@ class UserServices{
         //--Faz a busca no banco
         const user = await User.findOne({where})
 
-        // return !!user;
-        if(user){
-            throw new Error("Email já cadastrado!");
-        }
+        return !!user;
+        // if(user){
+        //     throw new Error("Email já cadastrado!");
+        // }
 
-        return false;
+        // return false;
     }
 
 
@@ -76,12 +76,12 @@ class UserServices{
 
         const user = await User.findOne({where});
 
-        // return !!user; 
-        if(user){
-            throw new Error("CPF já cadastrado!");
-        }
+        return !!user; //--Retorna true se encontrou
+        // if(user){
+        //     throw new Error("CPF já cadastrado!");
+        // }
 
-        return false
+        // return false
     }
 
 
@@ -121,7 +121,7 @@ class UserServices{
         //---Cria um novo usuário
         try{
             const user = await User.create({
-            name, email, password:hashedPassword, cpf: formatCpf(cpf), role
+              name, email, password:hashedPassword, cpf: formatCpf(cpf), role
             })
 
             return {
@@ -213,6 +213,7 @@ class UserServices{
   //---Busca usuário por ID
 
   async getUserById(userId) {
+    //---Busca usuário pelo id excluindo a senha
     const user = await User.findByPk(userId, {
       attributes: { exclude: ['password'] },
     });
@@ -233,7 +234,7 @@ class UserServices{
   //--Para listar usuários
   async listUsers(page = 1, limit = 10){
     const offset = (page - 1) * limit;
-
+    //---Ordena os usuários em ordem do mais recente
     const {count, rows: users} = await User.findAndCountAll({
         limit: parseInt(limit),
         offset: parseInt(offset),
