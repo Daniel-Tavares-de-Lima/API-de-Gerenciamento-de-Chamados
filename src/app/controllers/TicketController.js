@@ -1,5 +1,7 @@
 const { Ticket, Form, FormResponse, User } = require('../models');
 const { sequelize } = require('../models');
+const TicketServices = require("../../services/TicketServices");
+const {success, error, paginated} = require("../../utils/responseFormatter");
 //--Validações services
 class TicketController {
   // CREATE - Criar um novo ticket
@@ -7,8 +9,10 @@ class TicketController {
     const transaction = await sequelize.transaction();
 
     try {
-      const { form_id, response_id, priority, notes } = req.body;
+      // const { form_id, response_id, priority, notes } = req.body;
       const creator_id = req.user.id;
+
+      
 
       // Validação do ticket
       if (!form_id) {
