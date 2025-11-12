@@ -1,106 +1,36 @@
 const { Ticket, Form, FormResponse, User } = require('../models');
 const { sequelize } = require('../models');
 const TicketServices = require("../../services/TicketServices");
+
 const {success, error, paginated} = require("../../utils/responseFormatter");
+//--Classe instanciada
+const ticketServices = new TicketServices();
+
 //--Validações services
 class TicketController {
   // CREATE - Criar um novo ticket
   async create(req, res) {
     const transaction = await sequelize.transaction();
-
+    
     try {
       // const { form_id, response_id, priority, notes } = req.body;
       const creator_id = req.user.id;
 
-      
+      const result = await ticketServices.createTicket(req.body, creator_id);
 
-      // Validação do ticket
-      if (!form_id) {
+      if(!result.success){
         await transaction.rollback();
-        return res.status(400).json({
-          error: "O campo 'form_id' é obrigatório.",
-        });
+        return res.status(400).json(error("Erro ao criar ticket", result.errors))
       }
 
-      // Verifica se o formulário existe e se está ativo
-      const form = await Form.findOne({
-        where: { id_form: form_id },
-      });
+      await transaction.commit()
+      return res.status(200).json(success(result.ticket, "Ticket criado com sucesso"));
 
-      if (!form) {
-        await transaction.rollback();
-        return res.status(404).json({
-          error: 'Formulário não encontrado.',
-        });
-      }
-
-      if (!form.is_active) {
-        await transaction.rollback();
-        return res.status(400).json({
-          error: 'Este formulário está inativo e não pode ser usado.',
-        });
-      }
-
-      // Se response_id foi informado, verifica se existe
-      if (response_id) {
-        const response = await FormResponse.findByPk(response_id);
-        if (!response) {
-          await transaction.rollback();
-          return res.status(404).json({
-            error: 'Resposta de formulário não encontrada.',
-          });
-        }
-
-        // Verifica se a response é do mesmo form
-        if (response.form_id !== form_id) {
-          await transaction.rollback();
-          return res.status(400).json({
-            error: 'A resposta não pertence ao formulário informado.',
-          });
-        }
-      }
-
-      // Cria o ticket com transaction
-      const ticket = await Ticket.create(
-        {
-          form_id,
-          response_id: response_id || null,
-          creator_id,
-          responsible_id: null,
-          status: 'ABERTO',
-          priority: priority || 'MEDIA',
-          notes: notes || null,
-        },
-        { transaction }
-      );
-
-      await transaction.commit();
-
-      // Recarrega com relacionamentos
-      await ticket.reload({
-        include: [
-          {
-            association: 'form',
-            attributes: ['id_form', 'assunto', 'benefiario', 'description'],
-          },
-          {
-            association: 'creator',
-            attributes: ['id_user', 'email', 'role'],
-          },
-          {
-            association: 'response',
-            attributes: ['id', 'content'],
-          },
-        ],
-      });
-
-      return res.status(201).json(ticket);
     } catch (error) {
       await transaction.rollback();
       console.error('Erro ao criar ticket:', error);
       return res.status(500).json({
-        error: 'Erro ao criar ticket.',
-        details: error.message,
+        error: 'Erro ao criar ticket.'
       });
     }
   }

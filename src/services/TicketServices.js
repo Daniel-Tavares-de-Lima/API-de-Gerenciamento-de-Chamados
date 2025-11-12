@@ -14,13 +14,14 @@ class TicketServices{
             FECHADO: []
         }
 
-
+        //--Obtém as transições validas para o status atual
         const allowTransitions = transitions[currentStatus];
 
         //---Verifica se não há newStatus no array allowTransitions
         if(!allowTransitions.includes(newStatus)){
             errors.push(`Não é possivel mudar de ${currentStatus} para ${newStatus}`);
 
+            //--Retorna o resultado da validação com o erro
             return{
                 valid: false,
                 errors, 
@@ -38,6 +39,7 @@ class TicketServices{
             errors.push("Só é pissível fechar um ticket que esteja em ANDAMENTO");
         }
 
+        //--Retorna a validação 
         return{
             valid: errors.length === 0,
             errors
@@ -75,16 +77,21 @@ class TicketServices{
 
     ///----Valida se response existe e pertence ao form
     async validateFormResponse(responseId, formId){
+        //--Se não foi enviada nenhuma resposta
         if(!responseId){
             return {valid: true, response: null}
         }
 
+        //--Busca a resposta pelo ID
         const response = await FormResponse.findByPk(responseId);
 
+        //---Se não encontrar retorna erro
         if(!response){
             return {valid: false, errors: ["Resposta de formulário não encontrada"]}
-        }
+        }   
 
+
+        //--Verifica se a resposta pertence ao mesmo formulário
         if(response.form_id !== formId){
             return{
                 valid: false, errors: ["A Resposta não pertence ao formulário informado"]
@@ -97,6 +104,16 @@ class TicketServices{
         }
     }
 
+
+    ///---Verifica se o ticket pode ser editado
+    canEditTicket(ticket){
+        if(ticket.status === "FECHADO"){
+            return{
+                valid: false,
+                errors: ["Ticket FECHADO não pode ser editado"]
+            }
+        }
+    }
 
     //-------Inclui relacionamentos padrão
     getDefaultIncludes() {
@@ -178,3 +195,5 @@ class TicketServices{
         }
     }
 }
+
+module.exports = TicketServices;
