@@ -15,7 +15,7 @@ Esta API foi desenvolvida para gerenciar um sistema completo de **chamados/ticke
 
 ###  Objetivo
 
-Criar uma API RESTful robusta que implemente todas as funcionalidades de um sistema de gerenciamento de chamados, incluindo:
+Criar uma API RESTful que implemente todas as funcionalidades de um sistema de gerenciamento de chamados, incluindo:
 
 - Autenticação e autorização de usuários
 - Criação e gerenciamento de formulários customizáveis
