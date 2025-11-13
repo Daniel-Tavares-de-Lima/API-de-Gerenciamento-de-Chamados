@@ -38,64 +38,18 @@ class TicketController {
   // READ - Listar tickets
   async read(req, res) {
     try {
-      const {
-        page = 1,
-        limit = 10,
-        status,
-        priority,
-        form_id,
-      } = req.query;
-      const offset = (page - 1) * limit;
+      const {page = 1, limit = 10, status, priority, form_id, responsible_id} = req.query;
 
-      // Monta filtros
-      const where = {};
+      const filters = {status, priority, form_id, responsible_id};
 
-      // externo só vê seus próprios tickets
-      if (req.user.role === 'externo') {
-        where.creator_id = req.user.id;
-      }
+      const result = await ticketServices.listTickets(req.user)
 
-      // Filtros opcionais
-      if (status) where.status = status;
-      if (priority) where.priority = priority;
-      if (form_id) where.form_id = form_id;
+      return res.json(paginated(result.tickets), result.total, page, limit);
 
-      const { count, rows: tickets } = await Ticket.findAndCountAll({
-        where,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        order: [
-          ['priority', 'DESC'], // Prioridade maior primeiro
-          ['created_at', 'DESC'], // Mais recente primeiro
-        ],
-        include: [
-          {
-            association: 'form',
-            attributes: ['id_form', 'assunto', 'benefiario'],
-          },
-          {
-            association: 'creator',
-            attributes: ['id_user', 'email', 'role'],
-          },
-          {
-            association: 'responsible',
-            attributes: ['id_user', 'email', 'role'],
-          },
-        ],
-      });
 
-      return res.json({
-        total: count,
-        totalPages: Math.ceil(count / limit),
-        currentPage: parseInt(page),
-        tickets,
-      });
-    } catch (error) {
-      console.error('Erro ao listar tickets:', error);
-      return res.status(500).json({
-        error: 'Erro ao listar tickets.',
-        details: error.message,
-      });
+    } catch (err) {
+      console.error('Erro ao listar tickets:', err);
+      return res.status(500).json(error("Erro ao listar tickets"));
     }
   }
 
