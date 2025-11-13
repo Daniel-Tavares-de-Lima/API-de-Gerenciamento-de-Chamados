@@ -255,6 +255,32 @@ class TicketServices{
             currentPage: parseInt(page)
         }
     }
+
+
+    //---Busca o ticket por ID
+    async getTicketById(ticketId, user){
+        const ticket = await Ticket.findOne({
+            where: {id_ticket: ticketId},
+            include: this.getDefaultIncludes()
+        })
+
+        if(!ticket){
+            return {success: false, errors: ["Ticket não encontrado"]}
+        }
+
+
+        ///--Verifica permissões
+        const permission = this.checkUserPermission(user, ticket );
+
+        if(!permission.valid){
+            return{
+                success: false,
+                errors: permission.errors
+            }
+        }
+
+        return{success: true, ticket}
+    }
 }
 
 module.exports = TicketServices;

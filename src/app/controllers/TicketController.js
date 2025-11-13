@@ -58,52 +58,18 @@ class TicketController {
     try {
       const { id } = req.params;
 
-      const ticket = await Ticket.findOne({
-        where: { id_ticket: id },
-        include: [
-          {
-            association: 'form',
-            attributes: ['id_form', 'assunto', 'benefiario', 'description'],
-          },
-          {
-            association: 'creator',
-            attributes: ['id_user', 'email', 'cpf', 'role'],
-          },
-          {
-            association: 'responsible',
-            attributes: ['id_user', 'email', 'role'],
-          },
-          {
-            association: 'response',
-            attributes: ['id', 'content'],
-          },
-        ],
-      });
+      const result = await ticketServices.getTicketById(id, req.user);
 
-      if (!ticket) {
-        return res.status(404).json({
-          error: 'Ticket não encontrado.',
-        });
+      if(!result.success){
+        const statusCode = result.errors[0] === "Ticket não encontrado" ? 404 : 403;
+        return res.status(statusCode).json(error(result.errors[0]));
       }
 
-      // externo só pode ver seus próprios tickets
-      if (
-        req.user.role === 'externo' &&
-        ticket.creator_id !== req.user.id
-      ) {
-        return res.status(403).json({
-          error: 'Acesso negado.',
-          message: 'Você só pode visualizar seus próprios tickets.',
-        });
-      }
-
-      return res.json(ticket);
-    } catch (error) {
-      console.error('Erro ao buscar ticket:', error);
-      return res.status(500).json({
-        error: 'Erro ao buscar ticket.',
-        details: error.message,
-      });
+      return res.json(success(result.ticket));
+      
+    } catch (err) {
+      console.error('Erro ao buscar ticket:', err);
+      return res.status(500).json(error("Erro ao buscar ticket"));
     }
   }
 
