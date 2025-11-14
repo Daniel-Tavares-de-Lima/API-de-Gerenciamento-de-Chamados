@@ -16,6 +16,7 @@ class TicketServices{
 
         //--Obtém as transições validas para o status atual
         const allowTransitions = transitions[currentStatus];
+        console.log(allowTransitions)
 
         //---Verifica se não há newStatus no array allowTransitions
         if(!allowTransitions.includes(newStatus)){
@@ -35,7 +36,7 @@ class TicketServices{
         }
 
         //----Fechar um ticket
-        if(newStatus === "FECHADO" && currentStatus !== "ANDAMENTO"){
+        if(newStatus === "FECHADO" && currentStatus !== "EM_ANDAMENTO"){
             errors.push("Só é pissível fechar um ticket que esteja em ANDAMENTO");
         }
 
@@ -113,6 +114,8 @@ class TicketServices{
                 errors: ["Ticket FECHADO não pode ser editado"]
             }
         }
+
+        return {valid: true}
     }
 
     //--Verifica permissões de usuários sobre tickets
@@ -281,6 +284,68 @@ class TicketServices{
 
         return{success: true, ticket}
     }
+
+
+    async updateTicket(ticketId, data){
+        //---Encontra o ticket pelo id
+        const ticket = await Ticket.findOne({
+            where: {id_ticket: ticketId}
+        });
+
+        //---Verifica se encontrou, caso não: 
+        if(!ticket){
+            return{success: false, errors: ["Ticket não encontrado"]}
+        }
+
+        //--Verifica se pode editar
+        const canEdit = this.canEditTicket(ticket);
+        if(!canEdit.valid){
+            return{
+                success: false, errors: canEdit.errors
+            }
+        }
+
+        const{status, priority, responsible_id, notes} = data;
+
+        //----Verifica  a mudança de status
+        if(status && status !== ticket.status){
+            const newResponsible = responsible_id !== undefined ? responsible_id : ticket.response_id;
+
+            const statusValidation = this.validateStatusTransition(ticket.status, status, newResponsible)
+
+            //---Verifica se o status é valido, caso não
+            if(!statusValidation.valid){
+                return{success: false, errors: statusValidation.errors, allowTransitions: statusValidation.allowTransitions}
+            }
+        }
+
+        ///--Verifica se está removendo responsável de um ticket em ANDAMENTO para ABERTO
+        if(responsible_id === null && ticket.responsible_id !== null && ticket.status === "EM_ANDAMENTO"){
+            await ticket.update({
+                responsible_id: null,
+                status: "ABERTO",
+                ...Form(priority && {priority}),
+                ...Form(notes !== undefined && {notes})
+            });
+        }else{
+            ///--Atualiza normal
+            await ticket.update({
+                ...(status && {status}),
+                ...(priority && {priority}),
+                ...(responsible_id !== undefined && {responsible_id}),
+                ...(notes !== undefined && {notes})
+            })
+        }
+
+        //--Recarrega com os relacionamentos com as outras tabelas
+        await ticket.reload({include: this.getDefaultIncludes()});
+
+        return{
+            success: true, ticket
+        }
+    }
+
+       
 }
 
 module.exports = TicketServices;

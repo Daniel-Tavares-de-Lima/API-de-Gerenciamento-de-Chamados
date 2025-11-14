@@ -79,142 +79,33 @@ class TicketController {
 
     try {
       const { id } = req.params;
-      const { status, priority, responsible_id, notes } = req.body;
 
-      const ticket = await Ticket.findOne({
-        where: { id_ticket: id },
-      });
-
-      if (!ticket) {
+      if(req.user.role === "externo"){
         await transaction.rollback();
-        return res.status(404).json({
-          error: 'Ticket não encontrado.',
-        });
+        return res.status(400).json(
+          error("Apenas usuários INTERNOS podem atualizar os tickets")
+        )
       }
 
-      // externo não pode atualizar tickets
-      if (req.user.role === 'externo') {
+      const result = await ticketServices.updateTicket(id, req.body);
+
+      //---Verifica se encontrou o corpo da requisição, caso não
+      if(!result.success){
         await transaction.rollback();
-        return res.status(403).json({
-          error: 'Acesso negado.',
-          message: 'Apenas usuários INTERNOS podem atualizar tickets.',
-        });
-      }
-
-      // Verifica se o ticket pode ser editado
-      if (!ticket.editTicket()) {
-        await transaction.rollback();
-        return res.status(400).json({
-          error: 'Ticket FECHADO não pode ser editado.',
-        });
-      }
-
-      // Validação de mudança de status
-      if (status && status !== ticket.status) {
-        // Validação: EM_ANDAMENTO requer responsible_id
-        if (status === 'EM_ANDAMENTO') {
-          const newResponsible = responsible_id || ticket.responsible_id;
-          if (!newResponsible) {
-            await transaction.rollback();
-            return res.status(400).json({
-              error:
-                'Para mudar para EM_ANDAMENTO é necessário atribuir um responsável.',
-            });
-          }
-        }
-
-        // Validação: FECHADO só se estiver EM_ANDAMENTO
-        if (status === 'FECHADO' && !ticket.fechar()) {
-          await transaction.rollback();
-          return res.status(400).json({
-            error:
-              'Só é possível fechar um ticket que esteja EM_ANDAMENTO.',
-          });
-        }
-
-        // Validação: Voltar para ABERTO requer remover responsável
-        if (status === 'ABERTO' && ticket.status === 'EM_ANDAMENTO') {
-          if (responsible_id !== null && ticket.responsible_id !== null) {
-            await transaction.rollback();
-            return res.status(400).json({
-              error:
-                'Para voltar para ABERTO é necessário remover o responsável.',
-            });
-          }
-        }
-
-        // Valida se a transição é permitida
-        if (!ticket.canChangeStatusTo(status)) {
-          await transaction.rollback();
-          return res.status(400).json({
-            error: `Não é possível mudar de ${ticket.status} para ${status}.`,
-            allowedTransitions: {
-              ABERTO: ['EM_ANDAMENTO'],
-              EM_ANDAMENTO: ['FECHADO', 'ABERTO'],
-              FECHADO: [],
-            },
-          });
-        }
-      }
-
-      // Se está removendo responsável de um ticket EM_ANDAMENTO, volta para ABERTO
-      if (
-        responsible_id === null &&
-        ticket.responsible_id !== null &&
-        ticket.status === 'EM_ANDAMENTO'
-      ) {
-        await ticket.update(
-          {
-            responsible_id: null,
-            status: 'ABERTO',
-            ...(priority && { priority }),
-            ...(notes !== undefined && { notes }),
-          },
-          { transaction }
-        );
-      } else {
-        // Atualização normal
-        await ticket.update(
-          {
-            ...(status && { status }),
-            ...(priority && { priority }),
-            ...(responsible_id !== undefined && { responsible_id }),
-            ...(notes !== undefined && { notes }),
-          },
-          { transaction }
+        return res.status(400).json(
+          error("Erro ao atualizar o ticket", result.errors)
         );
       }
 
       await transaction.commit();
 
-      // Recarrega com relacionamentos
-      await ticket.reload({
-        include: [
-          {
-            association: 'form',
-            attributes: ['id_form', 'assunto', 'benefiario'],
-          },
-          {
-            association: 'creator',
-            attributes: ['id_user', 'email', 'role'],
-          },
-          {
-            association: 'responsible',
-            attributes: ['id_user', 'email', 'role'],
-          },
-        ],
-      });
-
-      return res.json({
-        message: 'Ticket atualizado com sucesso!',
-        ticket,
-      });
-    } catch (error) {
+      return res.json(success(result.ticket, "Ticket atualizado com sucesso"));
+      
+    } catch (erro) {
       await transaction.rollback();
-      console.error('Erro ao atualizar ticket:', error);
+      console.error('Erro ao atualizar ticket:', erro);
       return res.status(500).json({
         error: 'Erro ao atualizar ticket.',
-        details: error.message,
       });
     }
   }
