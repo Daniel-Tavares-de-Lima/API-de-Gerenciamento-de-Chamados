@@ -345,6 +345,36 @@ class TicketServices{
         }
     }
 
+
+    /////---DELETE - Deletar ticket
+    async deleteTicket(ticketId) {
+        const ticket = await Ticket.findOne({
+            where: { id_ticket: ticketId },
+        });
+
+        if (!ticket) {
+            return {
+                success: false,
+                errors: ['Ticket não encontrado'],
+            };
+        }
+
+        // Verifica se pode deletar
+        const canEdit = this.canEditTicket(ticket);
+        if (!canEdit.valid) {
+            return {
+                success: false,
+                errors: ['Ticket FECHADO não pode ser deletado'],
+            };
+        }
+
+        await ticket.destroy();
+
+        return {
+            success: true,
+        };
+    }
+
        
 }
 

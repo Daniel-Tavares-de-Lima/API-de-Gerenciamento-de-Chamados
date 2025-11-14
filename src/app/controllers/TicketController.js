@@ -110,45 +110,28 @@ class TicketController {
     }
   }
 
-  // DELETE - Remover ticket
+  // DELETE - Apagar um  ticket
   async delete(req, res) {
     try {
       const { id } = req.params;
 
-      const ticket = await Ticket.findOne({
-        where: { id_ticket: id },
-      });
-
-      if (!ticket) {
-        return res.status(404).json({
-          error: 'Ticket não encontrado.',
-        });
-      }
-
-      // externo não pode deletar
+      // EXTERNO não pode deletar
       if (req.user.role === 'externo') {
-        return res.status(403).json({
-          error: 'Acesso negado.',
-          message: 'Apenas usuários INTERNOS podem deletar tickets.',
-        });
+        return res.status(403).json(
+          error('Apenas usuários INTERNOS podem deletar tickets')
+        );
       }
 
-      // Não pode deletar ticket FECHADO
-      if (!ticket.editTicket()) {
-        return res.status(400).json({
-          error: 'Ticket FECHADO não pode ser deletado.',
-        });
-      }
+      const result = await ticketServices.deleteTicket(id);
 
-      await ticket.destroy();
+      if (!result.success) {
+        return res.status(400).json(error(result.errors[0]));
+      }
 
       return res.status(204).send();
-    } catch (error) {
-      console.error('Erro ao deletar ticket:', error);
-      return res.status(500).json({
-        error: 'Erro ao deletar ticket.',
-        details: error.message,
-      });
+    } catch (err) {
+      console.error('Erro ao deletar ticket:', err);
+      return res.status(500).json(error('Erro interno ao deletar ticket'));
     }
   }
 
