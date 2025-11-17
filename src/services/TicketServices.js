@@ -375,6 +375,111 @@ class TicketServices{
         };
     }
 
+
+    //--Atribui ticket a um usuário (Pegar para mim)
+    async assignTicket(ticketId, userId) {
+        //---Busca o ticket pelo id
+        const ticket = await Ticket.findOne({
+            where: { id_ticket: ticketId },
+        });
+
+
+        //---Caso não encontre renorta um erro
+        if (!ticket) {
+            return {
+                success: false,
+                errors: ['Ticket não encontrado'],
+            };
+        }
+
+        //--Só pode pegar para mim se o ticket estiver aberto
+        if (ticket.status !== 'ABERTO') {
+            return {
+                success: false,
+                errors: ['Só é possível pegar tickets com status ABERTO'],
+            };
+        }
+
+        //--Atualiza o ticket, define o responsável e coloca o status como ANDAMENTO
+        await ticket.update({
+            responsible_id: userId,
+            status: 'EM_ANDAMENTO',
+        });
+
+        //---Recarrega o ticket com todos os relacionamentos incluídos
+        await ticket.reload({
+            include: this.getDefaultIncludes(),
+        });
+
+        //--Retorna o ticket
+        return {
+            success: true,
+            ticket,
+        };
+  }
+
+  //---Devolver ticket para fila
+  async returnToQueue(ticketId){
+    //--Busca o ticket pelo id
+    const ticket = await Ticket.findOne({
+      where: { id_ticket: ticketId },
+    });
+
+    //--Se não encontrar dar erro
+    if (!ticket) {
+      return {
+        success: false,
+        errors: ['Ticket não encontrado'],
+      };
+    }
+
+    //--Só possível devolver um ticket caso ele esteja em ANDAMENTO
+    if (ticket.status !== 'EM_ANDAMENTO') {
+      return {
+        success: false,
+        errors: ['Só é possível devolver tickets EM_ANDAMENTO'],
+      };
+    }
+
+    //--Atualiza o ticket, remove o responsável e retorna para o status aberto
+    await ticket.update({
+      responsible_id: null,
+      status: 'ABERTO',
+    });
+
+    //--Recarrega o ticket com os seus relacionamentos
+    await ticket.reload({
+      include: this.getDefaultIncludes(),
+    });
+
+    //--Retorna o ticket
+    return {
+      success: true,
+      ticket,
+    };
+  }
+
+
+//   async closeTicket(ticketId) {
+//     const ticket = await Ticket.findOne({
+//       where: { id_ticket: ticketId },
+//     });
+
+//     if (!ticket) {
+//       return {
+//         success: false,
+//         errors: ['Ticket não encontrado'],
+//       };
+//     }
+
+//     if (ticket.status !== 'EM_ANDAMENTO') {
+//       return {
+//         success: false,
+//         errors: ['Só é possível fechar tickets que estejam EM_ANDAMENTO'],
+//       };
+//     }
+
+   
        
 }
 
