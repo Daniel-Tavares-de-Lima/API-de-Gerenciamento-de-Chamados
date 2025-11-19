@@ -41,12 +41,11 @@ class TicketController {
       //----Criar um middlewares------------
       const {page = 1, limit = 10, status, priority, form_id, responsible_id} = req.query;
 
-      // const filters = {status, priority, form_id, responsible_id};
+      const filters = {status, priority, form_id, responsible_id};
 
-      const result = await ticketServices.listTickets(req.user)
+      const result = await ticketServices.listTickets(req.user,page, limit,filters)
 
       return res.json(paginated(result.tickets), result.total, page, limit);
-
 
     } catch (err) {
       console.error('Erro ao listar tickets:', err);
