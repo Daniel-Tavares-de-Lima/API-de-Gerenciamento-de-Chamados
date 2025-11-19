@@ -25,7 +25,9 @@ class User extends Model{
             //---CPF do usuário
             cpf: Sequelize.STRING,
             //--Senha do usuário
-            password: Sequelize.STRING,
+            password: {
+                type: Sequelize.STRING(60),
+            },
             //---Tipo de usuário
             role: {
                 //---Interno(admin) - Pode fazer tudo no sistema

@@ -38,9 +38,10 @@ class TicketController {
   // READ - Listar tickets
   async read(req, res) {
     try {
+      //----Criar um middlewares------------
       const {page = 1, limit = 10, status, priority, form_id, responsible_id} = req.query;
 
-      const filters = {status, priority, form_id, responsible_id};
+      // const filters = {status, priority, form_id, responsible_id};
 
       const result = await ticketServices.listTickets(req.user)
 
@@ -137,6 +138,7 @@ class TicketController {
 
   // AÇÃO: Pegar ticket para mim
   async assignToMe(req, res) {
+    //----Verificar 
     const transaction = await sequelize.transaction();
 
     try {
@@ -157,6 +159,7 @@ class TicketController {
         return res.status(400).json(error(result.errors[0]));
       }
 
+      //-----Passar pro services
       await transaction.commit();
 
       return res.json(success(result.ticket, 'Ticket atribuído com sucesso'));

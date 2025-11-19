@@ -129,26 +129,27 @@ class TicketServices{
 
         return {valid: true}
     }
-
+//--IF cada; query string - paraments/POSTMAN
 
     //---Monta filtros para listagem
     buildListFilters(user, filters = {}){
        const where = {};
+      
 
        //--Quem é externo vê apenas seus tickets
-       if(user.role === "externo"){
-            where.creator_id = user.id
-       }
+    //    if(user.role === "externo"){
+    //         where.creator_id = user.id
+    //    }
 
-       if(filters.status){
-            where.status = filters.status;
-       }else if(filters.priority){
-            where.priority = filters.priority
-       }else if(filters.form_id){
-            where.form_id = filters.form_id
-       }else if(filters.responsible_id){
-            where.response_id = filters.response_id
-       }
+    //    if(filters.status){
+    //         where.status = filters.status;
+    //    }else if(filters.priority){
+    //         where.priority = filters.priority
+    //    }else if(filters.form_id){
+    //         where.form_id = filters.form_id
+    //    }else if(filters.responsible_id){
+    //         where.response_id = filters.response_id
+    //    }
 
        return where
     }
@@ -233,20 +234,20 @@ class TicketServices{
         }
     }
 
-
+//----OFFSET - Sequelize
     //----Lista tickets com os filtros
     async listTickets(user, page = 1, limit = 10, filters = {}){
         const calculation = (page - 1) * limit;
 
         const where = this.buildListFilters(user, filters);
-
+        //----
         const { count, rows: tickets} = await Ticket.findAndCountAll({
             where,
             limit: parseInt(limit),
             calculation: parseInt(calculation),
             order: [
                 ["priority", "DESC"], //--Prioridade maior primeiro
-                ["created_at", "DESC"] //--- Mais recente primeiro
+                ["created_at", "DESC"] 
             ],
             include: this.getDefaultIncludes()
         })
