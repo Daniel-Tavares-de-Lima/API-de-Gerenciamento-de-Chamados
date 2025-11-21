@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Rotas de usuários
 // Rota protegida - Criar usuário 
-router.post('/users', authMiddleware, interno(), UserController.create);       // Criar usuário
+router.post('/users', UserController.create);       // Criar usuário
 
 // Qualquer usuário autenticado pode ver usuários
 router.get('/users',authMiddleware, UserController.read);        // Listar todos

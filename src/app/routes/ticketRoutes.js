@@ -18,6 +18,6 @@ router.delete('/tickets/:id', interno(), TicketController.delete); // Apenas INT
 // Ações 
 router.post('/tickets/:id/assign-to-me', authMiddleware, TicketController.assignToMe);
 router.post('/tickets/:id/return-to-queue', authMiddleware, TicketController.returnToQueue);
-router.post('/tickets/:id/close', interno(), TicketController.close);
+// router.post('/tickets/:id/close', interno(), TicketController.close);
 
 module.exports = router;

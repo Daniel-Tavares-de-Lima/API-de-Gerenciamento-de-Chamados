@@ -7,7 +7,6 @@ const hashPassword = async (password) =>{
     return bcrypt.hash(password, salt);
 }
 
-
 //---Compara a senha de texto com a do Hash
 const comparePassword = async(password, hash) =>{
     return bcrypt.compare(password,hash);

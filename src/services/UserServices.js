@@ -121,7 +121,7 @@ class UserServices{
         //---Cria um novo usuário
         try{
             const user = await User.create({
-              name, email, password:hashedPassword, cpf: formatCpf(cpf), role
+              name, email, password, cpf: formatCpf(cpf), role
             })
 
             return {

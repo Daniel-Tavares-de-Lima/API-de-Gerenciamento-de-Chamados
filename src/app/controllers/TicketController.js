@@ -1,102 +1,36 @@
 const { Ticket, Form, FormResponse, User } = require('../models');
 const { sequelize } = require('../models');
+const TicketServices = require("../../services/TicketServices");
+
+const {success, error, paginated} = require("../../utils/responseFormatter");
+//--Classe instanciada
+const ticketServices = new TicketServices();
+
 //--Validações services
 class TicketController {
   // CREATE - Criar um novo ticket
   async create(req, res) {
     const transaction = await sequelize.transaction();
-
+    
     try {
-      const { form_id, response_id, priority, notes } = req.body;
+      // const { form_id, response_id, priority, notes } = req.body;
       const creator_id = req.user.id;
 
-      // Validação do ticket
-      if (!form_id) {
+      const result = await ticketServices.createTicket(req.body, creator_id);
+
+      if(!result.success){
         await transaction.rollback();
-        return res.status(400).json({
-          error: "O campo 'form_id' é obrigatório.",
-        });
+        return res.status(400).json(error("Erro ao criar ticket", result.errors))
       }
 
-      // Verifica se o formulário existe e se está ativo
-      const form = await Form.findOne({
-        where: { id_form: form_id },
-      });
+      await transaction.commit()
+      return res.status(200).json(success(result.ticket, "Ticket criado com sucesso"));
 
-      if (!form) {
-        await transaction.rollback();
-        return res.status(404).json({
-          error: 'Formulário não encontrado.',
-        });
-      }
-
-      if (!form.is_active) {
-        await transaction.rollback();
-        return res.status(400).json({
-          error: 'Este formulário está inativo e não pode ser usado.',
-        });
-      }
-
-      // Se response_id foi informado, verifica se existe
-      if (response_id) {
-        const response = await FormResponse.findByPk(response_id);
-        if (!response) {
-          await transaction.rollback();
-          return res.status(404).json({
-            error: 'Resposta de formulário não encontrada.',
-          });
-        }
-
-        // Verifica se a response é do mesmo form
-        if (response.form_id !== form_id) {
-          await transaction.rollback();
-          return res.status(400).json({
-            error: 'A resposta não pertence ao formulário informado.',
-          });
-        }
-      }
-
-      // Cria o ticket com transaction
-      const ticket = await Ticket.create(
-        {
-          form_id,
-          response_id: response_id || null,
-          creator_id,
-          responsible_id: null,
-          status: 'ABERTO',
-          priority: priority || 'MEDIA',
-          notes: notes || null,
-        },
-        { transaction }
-      );
-
-      await transaction.commit();
-
-      // Recarrega com relacionamentos
-      await ticket.reload({
-        include: [
-          {
-            association: 'form',
-            attributes: ['id_form', 'assunto', 'benefiario', 'description'],
-          },
-          {
-            association: 'creator',
-            attributes: ['id_user', 'email', 'role'],
-          },
-          {
-            association: 'response',
-            attributes: ['id', 'content'],
-          },
-        ],
-      });
-
-      return res.status(201).json(ticket);
     } catch (error) {
       await transaction.rollback();
       console.error('Erro ao criar ticket:', error);
       return res.status(500).json({
-        error: 'Erro ao criar ticket.',
-        details: error.message,
+        error: 'Erro ao criar ticket.'
       });
     }
   }
@@ -104,64 +38,18 @@ class TicketController {
   // READ - Listar tickets
   async read(req, res) {
     try {
-      const {
-        page = 1,
-        limit = 10,
-        status,
-        priority,
-        form_id,
-      } = req.query;
-      const offset = (page - 1) * limit;
+      //----Criar um middlewares------------
+      const {page = 1, limit = 10, status, priority, form_id, responsible_id} = req.query;
 
-      // Monta filtros
-      const where = {};
+      const filters = {status, priority, form_id, responsible_id};
 
-      // externo só vê seus próprios tickets
-      if (req.user.role === 'externo') {
-        where.creator_id = req.user.id;
-      }
+      const result = await ticketServices.listTickets(req.user,page, limit,filters)
 
-      // Filtros opcionais
-      if (status) where.status = status;
-      if (priority) where.priority = priority;
-      if (form_id) where.form_id = form_id;
+      return res.json(paginated(result.tickets), result.total, page, limit);
 
-      const { count, rows: tickets } = await Ticket.findAndCountAll({
-        where,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        order: [
-          ['priority', 'DESC'], // Prioridade maior primeiro
-          ['created_at', 'DESC'], // Mais recente primeiro
-        ],
-        include: [
-          {
-            association: 'form',
-            attributes: ['id_form', 'assunto', 'benefiario'],
-          },
-          {
-            association: 'creator',
-            attributes: ['id_user', 'email', 'role'],
-          },
-          {
-            association: 'responsible',
-            attributes: ['id_user', 'email', 'role'],
-          },
-        ],
-      });
-
-      return res.json({
-        total: count,
-        totalPages: Math.ceil(count / limit),
-        currentPage: parseInt(page),
-        tickets,
-      });
-    } catch (error) {
-      console.error('Erro ao listar tickets:', error);
-      return res.status(500).json({
-        error: 'Erro ao listar tickets.',
-        details: error.message,
-      });
+    } catch (err) {
+      console.error('Erro ao listar tickets:', err);
+      return res.status(500).json(error("Erro ao listar tickets"));
     }
   }
 
@@ -170,52 +58,18 @@ class TicketController {
     try {
       const { id } = req.params;
 
-      const ticket = await Ticket.findOne({
-        where: { id_ticket: id },
-        include: [
-          {
-            association: 'form',
-            attributes: ['id_form', 'assunto', 'benefiario', 'description'],
-          },
-          {
-            association: 'creator',
-            attributes: ['id_user', 'email', 'cpf', 'role'],
-          },
-          {
-            association: 'responsible',
-            attributes: ['id_user', 'email', 'role'],
-          },
-          {
-            association: 'response',
-            attributes: ['id', 'content'],
-          },
-        ],
-      });
+      const result = await ticketServices.getTicketById(id, req.user);
 
-      if (!ticket) {
-        return res.status(404).json({
-          error: 'Ticket não encontrado.',
-        });
+      if(!result.success){
+        const statusCode = result.errors[0] === "Ticket não encontrado" ? 404 : 403;
+        return res.status(statusCode).json(error(result.errors[0]));
       }
 
-      // externo só pode ver seus próprios tickets
-      if (
-        req.user.role === 'externo' &&
-        ticket.creator_id !== req.user.id
-      ) {
-        return res.status(403).json({
-          error: 'Acesso negado.',
-          message: 'Você só pode visualizar seus próprios tickets.',
-        });
-      }
-
-      return res.json(ticket);
-    } catch (error) {
-      console.error('Erro ao buscar ticket:', error);
-      return res.status(500).json({
-        error: 'Erro ao buscar ticket.',
-        details: error.message,
-      });
+      return res.json(success(result.ticket));
+      
+    } catch (err) {
+      console.error('Erro ao buscar ticket:', err);
+      return res.status(500).json(error("Erro ao buscar ticket"));
     }
   }
 
@@ -225,251 +79,93 @@ class TicketController {
 
     try {
       const { id } = req.params;
-      const { status, priority, responsible_id, notes } = req.body;
 
-      const ticket = await Ticket.findOne({
-        where: { id_ticket: id },
-      });
-
-      if (!ticket) {
+      if(req.user.role === "externo"){
         await transaction.rollback();
-        return res.status(404).json({
-          error: 'Ticket não encontrado.',
-        });
+        return res.status(400).json(
+          error("Apenas usuários INTERNOS podem atualizar os tickets")
+        )
       }
 
-      // externo não pode atualizar tickets
-      if (req.user.role === 'externo') {
+      const result = await ticketServices.updateTicket(id, req.body);
+
+      //---Verifica se encontrou o corpo da requisição, caso não
+      if(!result.success){
         await transaction.rollback();
-        return res.status(403).json({
-          error: 'Acesso negado.',
-          message: 'Apenas usuários INTERNOS podem atualizar tickets.',
-        });
-      }
-
-      // Verifica se o ticket pode ser editado
-      if (!ticket.editTicket()) {
-        await transaction.rollback();
-        return res.status(400).json({
-          error: 'Ticket FECHADO não pode ser editado.',
-        });
-      }
-
-      // Validação de mudança de status
-      if (status && status !== ticket.status) {
-        // Validação: EM_ANDAMENTO requer responsible_id
-        if (status === 'EM_ANDAMENTO') {
-          const newResponsible = responsible_id || ticket.responsible_id;
-          if (!newResponsible) {
-            await transaction.rollback();
-            return res.status(400).json({
-              error:
-                'Para mudar para EM_ANDAMENTO é necessário atribuir um responsável.',
-            });
-          }
-        }
-
-        // Validação: FECHADO só se estiver EM_ANDAMENTO
-        if (status === 'FECHADO' && !ticket.fechar()) {
-          await transaction.rollback();
-          return res.status(400).json({
-            error:
-              'Só é possível fechar um ticket que esteja EM_ANDAMENTO.',
-          });
-        }
-
-        // Validação: Voltar para ABERTO requer remover responsável
-        if (status === 'ABERTO' && ticket.status === 'EM_ANDAMENTO') {
-          if (responsible_id !== null && ticket.responsible_id !== null) {
-            await transaction.rollback();
-            return res.status(400).json({
-              error:
-                'Para voltar para ABERTO é necessário remover o responsável.',
-            });
-          }
-        }
-
-        // Valida se a transição é permitida
-        if (!ticket.canChangeStatusTo(status)) {
-          await transaction.rollback();
-          return res.status(400).json({
-            error: `Não é possível mudar de ${ticket.status} para ${status}.`,
-            allowedTransitions: {
-              ABERTO: ['EM_ANDAMENTO'],
-              EM_ANDAMENTO: ['FECHADO', 'ABERTO'],
-              FECHADO: [],
-            },
-          });
-        }
-      }
-
-      // Se está removendo responsável de um ticket EM_ANDAMENTO, volta para ABERTO
-      if (
-        responsible_id === null &&
-        ticket.responsible_id !== null &&
-        ticket.status === 'EM_ANDAMENTO'
-      ) {
-        await ticket.update(
-          {
-            responsible_id: null,
-            status: 'ABERTO',
-            ...(priority && { priority }),
-            ...(notes !== undefined && { notes }),
-          },
-          { transaction }
-        );
-      } else {
-        // Atualização normal
-        await ticket.update(
-          {
-            ...(status && { status }),
-            ...(priority && { priority }),
-            ...(responsible_id !== undefined && { responsible_id }),
-            ...(notes !== undefined && { notes }),
-          },
-          { transaction }
+        return res.status(400).json(
+          error("Erro ao atualizar o ticket", result.errors)
         );
       }
 
       await transaction.commit();
 
-      // Recarrega com relacionamentos
-      await ticket.reload({
-        include: [
-          {
-            association: 'form',
-            attributes: ['id_form', 'assunto', 'benefiario'],
-          },
-          {
-            association: 'creator',
-            attributes: ['id_user', 'email', 'role'],
-          },
-          {
-            association: 'responsible',
-            attributes: ['id_user', 'email', 'role'],
-          },
-        ],
-      });
-
-      return res.json({
-        message: 'Ticket atualizado com sucesso!',
-        ticket,
-      });
-    } catch (error) {
+      return res.json(success(result.ticket, "Ticket atualizado com sucesso"));
+      
+    } catch (erro) {
       await transaction.rollback();
-      console.error('Erro ao atualizar ticket:', error);
+      console.error('Erro ao atualizar ticket:', erro);
       return res.status(500).json({
         error: 'Erro ao atualizar ticket.',
-        details: error.message,
       });
     }
   }
 
-  // DELETE - Remover ticket
+  // DELETE - Apagar um  ticket
   async delete(req, res) {
     try {
       const { id } = req.params;
 
-      const ticket = await Ticket.findOne({
-        where: { id_ticket: id },
-      });
-
-      if (!ticket) {
-        return res.status(404).json({
-          error: 'Ticket não encontrado.',
-        });
-      }
-
-      // externo não pode deletar
+      // EXTERNO não pode deletar
       if (req.user.role === 'externo') {
-        return res.status(403).json({
-          error: 'Acesso negado.',
-          message: 'Apenas usuários INTERNOS podem deletar tickets.',
-        });
+        return res.status(403).json(
+          error('Apenas usuários INTERNOS podem deletar tickets')
+        );
       }
 
-      // Não pode deletar ticket FECHADO
-      if (!ticket.editTicket()) {
-        return res.status(400).json({
-          error: 'Ticket FECHADO não pode ser deletado.',
-        });
-      }
+      const result = await ticketServices.deleteTicket(id);
 
-      await ticket.destroy();
+      if (!result.success) {
+        return res.status(400).json(error(result.errors[0]));
+      }
 
       return res.status(204).send();
-    } catch (error) {
-      console.error('Erro ao deletar ticket:', error);
-      return res.status(500).json({
-        error: 'Erro ao deletar ticket.',
-        details: error.message,
-      });
+    } catch (err) {
+      console.error('Erro ao deletar ticket:', err);
+      return res.status(500).json(error('Erro interno ao deletar ticket'));
     }
   }
 
   // AÇÃO: Pegar ticket para mim
   async assignToMe(req, res) {
+    //----Verificar 
     const transaction = await sequelize.transaction();
 
     try {
       const { id } = req.params;
 
-      // Apenas interno pode pegar tickets
-      if (req.user.role !== 'interno') {
+      // Apenas INTERNO pode pegar tickets
+      // if (req.user.role !== 'interno') {
+      //   await transaction.rollback();
+      //   return res.status(403).json(
+      //     error('Apenas usuários INTERNOS podem assumir tickets')
+      //   );
+      // }
+
+      const result = await ticketServices.assignTicket(id, req.user.id);
+
+      if (!result.success) {
         await transaction.rollback();
-        return res.status(403).json({
-          error: 'Apenas usuários INTERNOS podem assumir tickets.',
-        });
+        return res.status(400).json(error(result.errors[0]));
       }
 
-      const ticket = await Ticket.findOne({
-        where: { id_ticket: id },
-      });
-
-      if (!ticket) {
-        await transaction.rollback();
-        return res.status(404).json({
-          error: 'Ticket não encontrado.',
-        });
-      }
-
-      if (ticket.status !== 'ABERTO') {
-        await transaction.rollback();
-        return res.status(400).json({
-          error: 'Só é possível pegar tickets com status ABERTO.',
-        });
-      }
-
-      // Atribui ao usuário logado e muda para EM_ANDAMENTO
-      await ticket.update(
-        {
-          responsible_id: req.user.id,
-          status: 'EM_ANDAMENTO',
-        },
-        { transaction }
-      );
-
+      //-----Passar pro services
       await transaction.commit();
 
-      await ticket.reload({
-        include: [
-          { association: 'form' },
-          { association: 'creator' },
-          { association: 'responsible' },
-        ],
-      });
-
-      return res.json({
-        message: 'Ticket atribuído com sucesso!',
-        ticket,
-      });
-    } catch (error) {
+      return res.json(success(result.ticket, 'Ticket atribuído com sucesso'));
+    } catch (err) {
       await transaction.rollback();
-      console.error('Erro ao atribuir ticket:', error);
-      return res.status(500).json({
-        error: 'Erro ao atribuir ticket.',
-        details: error.message,
-      });
+      console.error('Erro ao atribuir ticket:', err);
+      return res.status(500).json(error('Erro interno ao atribuir ticket'));
     }
   }
 
@@ -480,122 +176,59 @@ class TicketController {
     try {
       const { id } = req.params;
 
-      // Apenas interno pode devolver
-      if (req.user.role !== 'interno') {
+      // Apenas INTERNO pode devolver
+      // if (req.user.role !== 'interno') {
+      //   await transaction.rollback();
+      //   return res.status(403).json(
+      //     error('Apenas usuários INTERNOS podem devolver tickets')
+      //   );
+      // }
+
+      const result = await ticketServices.returnToQueue(id);
+
+      if (!result.success) {
         await transaction.rollback();
-        return res.status(403).json({
-          error: 'Apenas usuários INTERNOS podem devolver tickets.',
-        });
+        return res.status(400).json(error(result.errors[0]));
       }
-
-      const ticket = await Ticket.findOne({
-        where: { id_ticket: id },
-      });
-
-      if (!ticket) {
-        await transaction.rollback();
-        return res.status(404).json({
-          error: 'Ticket não encontrado.',
-        });
-      }
-
-      if (ticket.status !== 'EM_ANDAMENTO') {
-        await transaction.rollback();
-        return res.status(400).json({
-          error: 'Só é possível devolver tickets EM_ANDAMENTO.',
-        });
-      }
-
-      // Remove responsável e volta para ABERTO
-      await ticket.update(
-        {
-          responsible_id: null,
-          status: 'ABERTO',
-        },
-        { transaction }
-      );
 
       await transaction.commit();
 
-      await ticket.reload({
-        include: [
-          { association: 'form' },
-          { association: 'creator' },
-        ],
-      });
-
-      return res.json({
-        message: 'Ticket devolvido para a fila com sucesso!',
-        ticket,
-      });
-    } catch (error) {
+      return res.json(success(result.ticket, 'Ticket devolvido para a fila com sucesso'));
+    } catch (err) {
       await transaction.rollback();
-      console.error('Erro ao devolver ticket:', error);
-      return res.status(500).json({
-        error: 'Erro ao devolver ticket.',
-        details: error.message,
-      });
+      console.error('Erro ao devolver ticket:', err);
+      return res.status(500).json(error('Erro interno ao devolver ticket'));
     }
   }
 
-  // Fechar ticket
-  async close(req, res) {
-    const transaction = await sequelize.transaction();
 
-    try {
-      const { id } = req.params;
+  
+  // async close(req, res) {
+  //   const transaction = await sequelize.transaction();
 
-      // Apenas interno pode fechar
-      if (req.user.role !== 'interno') {
-        await transaction.rollback();
-        return res.status(403).json({
-          error: 'Apenas usuários INTERNOS podem fechar tickets.',
-        });
-      }
+  //   try {
+  //     const { id } = req.params;
 
-      const ticket = await Ticket.findOne({
-        where: { id_ticket: id },
-      });
+  //     // Apenas INTERNO pode fechar
+  //     if (req.user.role !== 'interno') {
+  //       await transaction.rollback();
+  //       return res.status(403).json(
+  //         error('Apenas usuários INTERNOS podem fechar tickets')
+  //       );
+  //     }
 
-      if (!ticket) {
-        await transaction.rollback();
-        return res.status(404).json({
-          error: 'Ticket não encontrado.',
-        });
-      }
+  //     const result = await TicketService.closeTicket(id);
 
-      if (!ticket.fechar()) {
-        await transaction.rollback();
-        return res.status(400).json({
-          error: 'Só é possível fechar tickets que estejam EM_ANDAMENTO.',
-        });
-      }
+  //     if (!result.success) {
+  //       await transaction.rollback();
+  //       return res.status(400).json(error(result.errors[0]));
+  //     }
 
-      await ticket.update({ status: 'FECHADO' }, { transaction });
+  //     await transaction.commit();
 
-      await transaction.commit();
-
-      await ticket.reload({
-        include: [
-          { association: 'form' },
-          { association: 'creator' },
-          { association: 'responsible' },
-        ],
-      });
-
-      return res.json({
-        message: 'Ticket fechado com sucesso!',
-        ticket,
-      });
-    } catch (error) {
-      await transaction.rollback();
-      console.error('Erro ao fechar ticket:', error);
-      return res.status(500).json({
-        error: 'Erro ao fechar ticket.',
-        details: error.message,
-      });
-    }
-  }
+  //     return res.json(success(result.ticket, 'Ticket fechado com sucesso'));
+    
+  // }
 }
 
 module.exports = new TicketController();

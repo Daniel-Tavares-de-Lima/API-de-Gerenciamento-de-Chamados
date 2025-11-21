@@ -47,7 +47,7 @@ class FormResponse extends Model {
         tableName: 'form_responses',
         createdAt: 'created_at',
         updatedAt: 'updated_at',
-        deletedAt: "delete_at",
+        deletedAt: "deleted_at",
         timestamps: true,
         underscored: true,
         paranoid: true
