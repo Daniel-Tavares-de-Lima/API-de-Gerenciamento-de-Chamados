@@ -18,7 +18,7 @@ class AuthController{
             //--Busca o usuário pelo email
             const user = await User.findOne({
                 where: {email},
-                attributes: ["id_user", "email", "password", "cpf", "role"]
+                attributes: ["id_user", "email", "password", "cpf", "role"], logging: true
             });
 
             //--Verifica se o usuário existe 

@@ -50,7 +50,7 @@ class User extends Model{
         
     )
     //-- Transforma a senha em Hash antes de salvar ou atualizar.
-    this.addHook('beforeSave', async(user) => {
+    this.addHook('beforeCreate', async(user) => {
         //--Se existe senha e se ela foi atualizada cria o hash com 8 rounds
         if(user.password && user.changed("password")) {
             user.password = await bcrypt.hash(user.password, 8);

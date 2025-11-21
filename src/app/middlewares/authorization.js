@@ -1,5 +1,4 @@
-//---VERIFICA AS PERMISSÕES INTERNO OU EXTERNO
-///---VALIDAR NO BANCO
+
 //--Middleware que verifica se o usuário tem a permissão necessária
 const checkRole = (...allowedRole) => {
     return(req,res,next) => {

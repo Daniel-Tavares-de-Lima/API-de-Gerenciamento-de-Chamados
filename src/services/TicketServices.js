@@ -134,9 +134,6 @@ class TicketServices{
     //---Monta filtros para listagem
     buildListFilters(user, filters = {}){
        const where = {};
-    //    const params = new URLSearchParams(window.location.search);
-    //    const status = params.get("status")
-
 
        //--Quem é externo vê apenas seus tickets
        if(user.role === 'externo'){
@@ -152,12 +149,6 @@ class TicketServices{
                 }
             }
        }
-
-
-       //--Quem é externo vê apenas seus tickets
-    //    if(user.role === "externo"){
-    //         where.creator_id = user.id
-    //    }
 
        if(filters.status){
             where.status = filters.status;

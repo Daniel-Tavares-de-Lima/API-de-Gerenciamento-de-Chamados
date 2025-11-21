@@ -40,9 +40,9 @@ const paginated = (items, total, page, limit) =>{
         data: items,
         pagination:{
             total,
-            totalPages: Math.ceil(total / limit),
-            currentPage: parseInt(page),
-            perPage: parseInt(limit),
+            // totalPages: Math.ceil(total / limit),
+            // currentPage: parseInt(page),
+            // perPage: parseInt(limit),
             hasNext: page * limit < total,
             hasPrevious: page > 1
         }
