@@ -287,4 +287,4 @@ class FormResponseController {
   }
 }
 
-module.exports = new FormResponseController();
+module.exports = FormResponseController;

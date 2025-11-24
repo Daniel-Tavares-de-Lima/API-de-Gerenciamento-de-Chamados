@@ -111,4 +111,4 @@ class FormController {
     }
 }
 
-module.exports = new FormController();
+module.exports = FormController;

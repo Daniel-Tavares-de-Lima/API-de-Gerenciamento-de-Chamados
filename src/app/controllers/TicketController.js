@@ -1,4 +1,4 @@
-const { Ticket, Form, FormResponse, User } = require('../models');
+// const { Ticket, Form, FormResponse, User } = require('../models');
 const { sequelize } = require('../models');
 const TicketServices = require("../../services/TicketServices");
 
@@ -231,4 +231,4 @@ class TicketController {
   // }
 }
 
-module.exports = new TicketController();
+module.exports =  TicketController;

@@ -192,8 +192,6 @@ class TicketServices{
     async createTicket(data, creatorId){
         const {form_id, response_id, priority, notes} = data;
 
-        const errors = []
-
         //---Não encontrado o id
         if(!form_id){
             return{
