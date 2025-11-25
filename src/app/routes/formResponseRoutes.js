@@ -7,7 +7,7 @@ const router = express.Router();
 // Todas as rotas requerem autenticação
 router.use(authMiddleware);
 
-const formResponseController = FormResponseController();
+const formResponseController = new FormResponseController();
 
 // CRUD de respostas de formulários
 router.post('/forms-responses', formResponseController.create);

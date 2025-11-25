@@ -269,4 +269,4 @@ class UserServices{
   }
 }
 
-module.exports = new UserServices();
+module.exports = UserServices;

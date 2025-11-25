@@ -73,4 +73,4 @@ class FormValidationService {
   }
 }
 
-module.exports = new FormValidationService();
+module.exports = FormValidationService;

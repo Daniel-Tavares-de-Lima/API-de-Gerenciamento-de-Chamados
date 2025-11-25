@@ -1,6 +1,7 @@
 const { FormResponse, Form, User } = require('../models');
 const FormValidationService = require('../../services/FormValidationServices');
 
+const formValidationServices = new FormValidationService();
 class FormResponseController {
   // CREATE - Criar uma resposta de formulário
   async create(req, res) {
@@ -35,7 +36,7 @@ class FormResponseController {
       }
 
       // Valida se o content está no formato correto
-      const validation = FormValidationService.validateResponse(form, content);
+      const validation = formValidationServices.validateResponse(form, content);
       if (!validation.valid) {
         return res.status(400).json({
           error: 'Resposta inválida',
@@ -199,7 +200,7 @@ class FormResponseController {
 
       // Se content foi enviado, valida
       if (content) {
-        const validation = FormValidationService.validateResponse(
+        const validation = formValidationServices.validateResponse(
           formResponse.form,
           content
         );

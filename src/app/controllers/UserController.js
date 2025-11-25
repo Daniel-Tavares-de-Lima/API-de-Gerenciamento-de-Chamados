@@ -2,11 +2,13 @@ const UserServices = require("../../services/UserServices");
 const { success, error, paginated } = require("../../utils/responseFormatter");
 const { User } = require("../models");
 
+const userServices = new UserServices();
+
 class UserController{
     //--CREATE - Criar um novo Usuário
     async create(req, res){
        try{
-        const result = await UserServices.createUser(req.body);
+        const result = await userServices.createUser(req.body);
 
         if(!result.success){
             return res.status(400).json(error("Erro ao criar usuário", result.errors));
@@ -24,7 +26,7 @@ class UserController{
     async read(req, res) {
         try {
             const { page = 1, limit = 10 } = req.query;
-            const result = await UserServices.listUsers(page, limit);
+            const result = await userServices.listUsers(page, limit);
 
             return res.json(paginated(result.users, result.total, page, limit));
         } catch (err) {
@@ -38,7 +40,7 @@ class UserController{
     async readId(req, res) {
     try {
       const { id } = req.params;
-      const result = await UserServices.getUserById(id);
+      const result = await userServices.getUserById(id);
 
       if (!result.success) {
         return res.status(404).json(error('Usuário não encontrado'));
@@ -55,7 +57,7 @@ class UserController{
     async update(req, res) {
         try {
             const { id } = req.params;
-            const result = await UserServices.updateUser(id, req.body);
+            const result = await userServices.updateUser(id, req.body);
 
             if (!result.success) {
                 return res.status(400).json(error('Erro ao atualizar usuário', result.errors));
@@ -74,7 +76,7 @@ class UserController{
         try {
             const { id } = req.params;
 
-            const result = await UserServices.deleteUser(id);
+            const result = await userServices.deleteUser(id);
 
             if(!result.success){
                 return res.status(404).json("Usuário não encontrado");

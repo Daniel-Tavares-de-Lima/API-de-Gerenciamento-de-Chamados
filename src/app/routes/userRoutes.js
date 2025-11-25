@@ -4,7 +4,6 @@ const authMiddleware = require('../middlewares/auth');
 const { interno } = require('../middlewares/authorization');
 const router = express.Router();
 
-const UserController = require('../controllers/UserController');
 const userController = new UserController();
 
 // Rotas de usuários
