@@ -4,7 +4,6 @@ const { hash } = require("bcryptjs");
 const { User } = require("../app/models");
 const { formatCpf, isValidLength} = require("../utils/cpfValidator");
 const {hashPassword} = require("../utils/passwordHelp");
-// const { success, error } = require("../utils/responseFormatter");
 const {Op} = require("sequelize");
 
 class UserServices{

@@ -9,7 +9,7 @@ const formRoutes = require("./app/routes/formRoutes")
 const ticketRoutes = require('./app/routes/ticketRoutes');
 const authRoutes = require('./app/routes/authRoutes');
 const formResponseRoutes = require('./app/routes/formResponseRoutes');
-const { success } = require("./utils/responseFormatter");
+
 
 app.use(cors()); //--Requisições de outros grupos
 app.use(express.json()); //--Para interpretar JSON

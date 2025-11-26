@@ -1,5 +1,6 @@
 const {Ticket, Form, FormResponse, User} = require("../app/models");
 const { success, error } = require("../utils/responseFormatter");
+const {Op} = require("sequelize")
 
 
 class TicketServices{
@@ -75,7 +76,6 @@ class TicketServices{
 
     }
 
-
     ///----Valida se response existe e pertence ao form
     async validateFormResponse(responseId, formId){
         //--Se não foi enviada nenhuma resposta
@@ -129,38 +129,34 @@ class TicketServices{
 
         return {valid: true}
     }
-//--IF cada; query string - paraments/POSTMAN
 
     //---Monta filtros para listagem
     buildListFilters(user, filters = {}){
+        //--Where da consulta SQL
        const where = {};
 
        //--Quem é externo vê apenas seus tickets
        if(user.role === 'externo'){
-            // user.creator_id = user.id
-
-            //---Verifica se há tickets vinculado ao usuário externo
-            if(user.creator_id){
-                user.creator_id = user.id
-            }
-            else{
-                return{ 
-                    success: false, errors: ["Você não possui nenhum ticket atribuido a você."]
-                }
-            }
+            //----Se for externo, verifica se há tickets vinculado ou se ele foi o criador
+            //--SELECT * FROM user WHERE "creator_id" IS user.id
+            where[Op.or] = [{creator_id: user.id}, {responsible_id: user.id}]
        }
 
+       //--Se tiver status na URL coloca em where e procura no banco
        if(filters.status){
             where.status = filters.status;
        }
+       //--Se tiver prioridade na URL coloca em where e procura no banco
        if(filters.priority){
             where.priority = filters.priority
        }
+       //--Se tiver form_id na URL coloca em where e procura no banco
        if(filters.form_id){
             where.form_id = filters.form_id
        }
+       //--Se tiver responsável na URL coloca em where e procura no banco
        if(filters.responsible_id){
-            where.response_id = filters.response_id
+            where.responsible_id = filters.responsible_id
        }
 
        return where
@@ -250,11 +246,13 @@ class TicketServices{
         const offset = (page - 1) * limit;
 
         const where = this.buildListFilters(user, filters);
+        console.log("FILTRO MONTADO:", where);
+        console.log("USUÁRIO:", user);
         //----
         //---Filtra no banco de dados
         const { count, rows: tickets} = await Ticket.findAndCountAll({
-            where,
-            limit: parseInt(limit),
+            where, //--Quais parametros serão buscados
+            limit: parseInt(limit), 
             offset: parseInt(offset),
             order: [
                 ["priority", "DESC"], //--Prioridade maior primeiro

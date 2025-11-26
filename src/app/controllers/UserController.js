@@ -8,6 +8,7 @@ class UserController{
     //--CREATE - Criar um novo Usuário
     async create(req, res){
        try{
+        //--Chama o service para criar o usuario passando o corpo
         const result = await userServices.createUser(req.body);
 
         if(!result.success){
