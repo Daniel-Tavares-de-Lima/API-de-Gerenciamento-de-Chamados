@@ -38,8 +38,10 @@ class TicketController {
   // READ - Listar tickets
   async read(req, res) {
     try {
+
+      const {page, limit} = req.pagination;
       //----Parametros que vem da URL
-      const {page = 1, limit = 10, status, priority, form_id, responsible_id} = req.query;
+      const {status, priority, form_id, responsible_id} = req.query;
 
       //---Agrupa os filtros
       const filters = {status, priority, form_id, responsible_id};

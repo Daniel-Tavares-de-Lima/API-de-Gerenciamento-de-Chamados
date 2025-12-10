@@ -9,6 +9,7 @@ const formRoutes = require("./app/routes/formRoutes")
 const ticketRoutes = require('./app/routes/ticketRoutes');
 const authRoutes = require('./app/routes/authRoutes');
 const formResponseRoutes = require('./app/routes/formResponseRoutes');
+const messageRoutes = require('./app/routes/messageRoutes');
 
 
 app.use(cors()); //--Requisições de outros grupos
@@ -32,6 +33,7 @@ app.use('/api', authRoutes);
 app.use('/api', userRoutes);
 app.use('/api', ticketRoutes);
 app.use('/api', formResponseRoutes);
+app.use('/api', messageRoutes);
 // app.use("/users", userRouter);
 // app.user("/tickets", ticketsRouter)
 

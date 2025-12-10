@@ -2,6 +2,7 @@ const express = require('express');
 const TicketController = require('../controllers/TicketController');
 const authMiddleware = require('../middlewares/auth');
 const { interno } = require('../middlewares/authorization');
+const paginationMiddleare = require("../middlewares/pagination");
 
 const router = express.Router();
 const ticketController = new TicketController();
@@ -11,7 +12,7 @@ router.use(authMiddleware);
 
 
 router.post('/tickets', ticketController.create); // Qualquer usuário autenticado
-router.get('/tickets', ticketController.read); // Filtrado por permissão
+router.get('/tickets', paginationMiddleare, ticketController.read); // Filtrado por permissão
 router.get('/tickets/:id', ticketController.readId); // Com verificação de permissão
 router.put('/tickets/:id', interno(), ticketController.update); // Apenas INTERNO
 router.delete('/tickets/:id', interno(), ticketController.delete); // Apenas INTERNO
