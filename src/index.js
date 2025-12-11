@@ -12,7 +12,7 @@ const formResponseRoutes = require('./app/routes/formResponseRoutes');
 const messageRoutes = require('./app/routes/messageRoutes');
 
 
-app.use(cors()); //--Requisições de outros grupos
+app.use(cors()); //--Requisições de outras portas
 app.use(express.json()); //--Para interpretar JSON
 app.use(express.urlencoded({extended: true})); //--Dados do formulário
 
